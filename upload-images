@@ -1,0 +1,863 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Upload Ảnh — VisionX CheckIn</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap");
+
+      :root {
+        --red: #cc0000;
+        --bg: #0c0c0c;
+        --card: #131313;
+        --card2: #181818;
+        --border: #222;
+        --text: #e0e0e0;
+        --muted: #555;
+        --green: #22c55e;
+        --yellow: #f59e0b;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "DM Sans", sans-serif;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      header {
+        width: 100%;
+        padding: 18px 28px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        background: #0e0e0e;
+      }
+      .vx {
+        background: var(--red);
+        width: 40px;
+        height: 40px;
+        border-radius: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "Bebas Neue";
+        font-size: 20px;
+        color: #fff;
+        flex-shrink: 0;
+      }
+      header h1 {
+        font-family: "Bebas Neue";
+        font-size: 20px;
+        letter-spacing: 2px;
+      }
+      header p {
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      .wrap {
+        width: 100%;
+        max-width: 860px;
+        padding: 32px 20px 80px;
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        gap: 20px;
+      }
+      @media (max-width: 680px) {
+        .wrap {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      .card-head {
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--border);
+        font-family: "Bebas Neue";
+        font-size: 15px;
+        letter-spacing: 1.5px;
+        color: #bbb;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .card-body {
+        padding: 20px;
+      }
+
+      /* Drop zone */
+      #dropZone {
+        border: 2px dashed #2a2a2a;
+        border-radius: 12px;
+        padding: 36px 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        background: #0f0f0f;
+      }
+      #dropZone:hover,
+      #dropZone.over {
+        border-color: var(--red);
+        background: #180505;
+      }
+      #dropZone .icon {
+        font-size: 38px;
+        display: block;
+        margin-bottom: 10px;
+      }
+      #dropZone h3 {
+        font-size: 15px;
+        color: #ccc;
+        margin-bottom: 6px;
+      }
+      #dropZone p {
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+      #dropZone code {
+        background: #222;
+        color: #f88;
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-family: "DM Mono";
+        font-size: 11px;
+      }
+      #fileInput {
+        display: none;
+      }
+
+      /* Queue */
+      #queueWrap {
+        margin-top: 16px;
+      }
+      .q-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      .q-header span {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .q-header button {
+        font-size: 11px;
+        background: #1e1e1e;
+        color: #888;
+        border: 1px solid #2a2a2a;
+        border-radius: 5px;
+        padding: 3px 9px;
+        cursor: pointer;
+      }
+      .q-header button:hover {
+        color: #ccc;
+      }
+
+      #fileList {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+
+      .fitem {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--card2);
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        padding: 9px 12px;
+        animation: pop 0.15s ease;
+      }
+      @keyframes pop {
+        from {
+          opacity: 0;
+          transform: scale(0.97);
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      .fthumb {
+        width: 40px;
+        height: 40px;
+        border-radius: 7px;
+        flex-shrink: 0;
+        background: #111;
+        border: 1px solid #2a2a2a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        color: #333;
+        overflow: hidden;
+      }
+      .fthumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .finfo {
+        flex: 1;
+        min-width: 0;
+      }
+      .fname {
+        font-family: "DM Mono";
+        font-size: 12px;
+        color: #ccc;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .fmeta {
+        font-size: 11px;
+        margin-top: 2px;
+      }
+      .s-wait {
+        color: var(--muted);
+      }
+      .s-ok {
+        color: var(--green);
+      }
+      .s-err {
+        color: #f55;
+      }
+      .s-run {
+        color: var(--yellow);
+      }
+
+      .fbadge {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 7px;
+        border-radius: 8px;
+        flex-shrink: 0;
+      }
+      .b-wait {
+        background: #1e1e1e;
+        color: #555;
+      }
+      .b-ok {
+        background: #0f2d0f;
+        color: #4f4;
+      }
+      .b-err {
+        background: #2d0f0f;
+        color: #f55;
+      }
+      .b-run {
+        background: #2d2500;
+        color: #fc0;
+      }
+
+      /* Button */
+      .upload-row {
+        margin-top: 16px;
+      }
+      .btn-up {
+        width: 100%;
+        padding: 13px;
+        background: linear-gradient(135deg, var(--red), #900);
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        font-family: "DM Sans";
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .btn-up:hover:not(:disabled) {
+        filter: brightness(1.15);
+        transform: translateY(-1px);
+        box-shadow: 0 5px 20px rgba(200, 0, 0, 0.3);
+      }
+      .btn-up:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+
+      /* Progress */
+      #prog {
+        margin-top: 12px;
+        display: none;
+      }
+      #prog.show {
+        display: block;
+      }
+      #progBar {
+        height: 3px;
+        background: #222;
+        border-radius: 2px;
+        overflow: hidden;
+      }
+      #progFill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--red), #f55);
+        width: 0%;
+        transition: width 0.3s;
+      }
+      #progText {
+        font-size: 11px;
+        color: var(--muted);
+        text-align: center;
+        margin-top: 5px;
+      }
+
+      /* Summary */
+      #summary {
+        display: none;
+        margin-top: 12px;
+        padding: 12px 16px;
+        border-radius: 10px;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      #summary.show {
+        display: block;
+      }
+      #summary.ok {
+        background: #0c2010;
+        border: 1px solid #1a4020;
+        color: #5f5;
+      }
+      #summary.err {
+        background: #200c0c;
+        border: 1px solid #401a1a;
+        color: #f77;
+      }
+      #summary.mix {
+        background: #201a08;
+        border: 1px solid #4a3c12;
+        color: #fca;
+      }
+
+      /* Stats */
+      .stat-box {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        padding: 16px;
+      }
+      .stat {
+        background: #0f0f0f;
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        padding: 12px;
+        text-align: center;
+      }
+      .stat-num {
+        font-family: "Bebas Neue";
+        font-size: 30px;
+        line-height: 1;
+      }
+      .stat-lbl {
+        font-size: 10px;
+        color: var(--muted);
+        margin-top: 3px;
+        letter-spacing: 0.5px;
+      }
+      .n-t {
+        color: #888;
+      }
+      .n-ok {
+        color: var(--green);
+      }
+      .n-e {
+        color: #f55;
+      }
+      .n-w {
+        color: var(--yellow);
+      }
+
+      /* Log */
+      #log {
+        padding: 0 14px 14px;
+        max-height: 280px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .log-item {
+        font-family: "DM Mono";
+        font-size: 11px;
+        padding: 5px 8px;
+        border-radius: 6px;
+        background: #0f0f0f;
+        border-left: 2px solid #333;
+        color: #666;
+        line-height: 1.4;
+      }
+      .log-ok {
+        border-color: var(--green);
+        color: #4c4;
+      }
+      .log-err {
+        border-color: #f55;
+        color: #f77;
+      }
+      .log-run {
+        border-color: var(--yellow);
+        color: #fc0;
+      }
+
+      ::-webkit-scrollbar {
+        width: 4px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #2a2a2a;
+        border-radius: 2px;
+      }
+
+      .spinner {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border: 2px solid #333;
+        border-top-color: var(--red);
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+        vertical-align: middle;
+        margin-right: 5px;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="vx">VX</div>
+      <div>
+        <h1>UPLOAD ẢNH CHECKIN</h1>
+        <p>Tên file = QR CODE TEXT · Chạy trực tiếp trên Google Apps Script</p>
+      </div>
+    </header>
+
+    <div class="wrap">
+      <!-- LEFT -->
+      <div>
+        <div class="card">
+          <div class="card-head">📂 CHỌN ẢNH</div>
+          <div class="card-body">
+            <div id="dropZone">
+              <span class="icon">🖼️</span>
+              <h3>Kéo thả ảnh hoặc click để chọn</h3>
+              <p>
+                Tên file phải trùng với QR CODE TEXT<br />
+                <code>VXI-00001.jpg</code> &nbsp;·&nbsp; <code>CI-0001.png</code
+                ><br />
+                Định dạng: jpg · jpeg · png · webp · gif
+              </p>
+              <input
+                type="file"
+                id="fileInput"
+                multiple
+                accept=".jpg,.jpeg,.png,.gif,.webp"
+              />
+            </div>
+
+            <div id="queueWrap" style="display: none">
+              <div class="q-header">
+                <span id="qCount">0 file</span>
+                <button onclick="clearAll()">Xóa tất cả</button>
+              </div>
+              <div id="fileList"></div>
+
+              <div class="upload-row">
+                <button
+                  class="btn-up"
+                  id="upBtn"
+                  onclick="startUpload()"
+                  disabled
+                >
+                  ⬆ Chèn vào Google Sheet
+                </button>
+              </div>
+
+              <div id="prog">
+                <div id="progBar"><div id="progFill"></div></div>
+                <div id="progText"></div>
+              </div>
+              <div id="summary"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div style="display: flex; flex-direction: column; gap: 16px">
+        <div class="card">
+          <div class="card-head">📊 THỐNG KÊ</div>
+          <div class="stat-box">
+            <div class="stat">
+              <div class="stat-num n-t" id="sT">0</div>
+              <div class="stat-lbl">TỔNG</div>
+            </div>
+            <div class="stat">
+              <div class="stat-num n-ok" id="sO">0</div>
+              <div class="stat-lbl">THÀNH CÔNG</div>
+            </div>
+            <div class="stat">
+              <div class="stat-num n-e" id="sE">0</div>
+              <div class="stat-lbl">LỖI</div>
+            </div>
+            <div class="stat">
+              <div class="stat-num n-w" id="sW">0</div>
+              <div class="stat-lbl">CHỜ</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="flex: 1">
+          <div class="card-head">📋 LOG</div>
+          <div id="log">
+            <div class="log-item" style="color: #2a2a2a">
+              Chưa có hoạt động...
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ── State ─────────────────────────────────────────────────────
+      var queue = [];
+      var VALID_EXT = ["jpg", "jpeg", "png", "gif", "webp"];
+      var running = false;
+
+      // ── Drop zone ─────────────────────────────────────────────────
+      var dz = document.getElementById("dropZone");
+      var fi = document.getElementById("fileInput");
+
+      dz.addEventListener("click", function () {
+        fi.click();
+      });
+      dz.addEventListener("dragover", function (e) {
+        e.preventDefault();
+        dz.classList.add("over");
+      });
+      dz.addEventListener("dragleave", function () {
+        dz.classList.remove("over");
+      });
+      dz.addEventListener("drop", function (e) {
+        e.preventDefault();
+        dz.classList.remove("over");
+        addFiles(Array.from(e.dataTransfer.files));
+      });
+      fi.addEventListener("change", function () {
+        addFiles(Array.from(fi.files));
+        fi.value = "";
+      });
+
+      // ── Validate ──────────────────────────────────────────────────
+      function validate(name) {
+        var dot = name.lastIndexOf(".");
+        if (dot < 1) return { ok: false, err: "Thiếu extension" };
+        var base = name.slice(0, dot).trim();
+        var ext = name.slice(dot + 1).toLowerCase();
+        if (VALID_EXT.indexOf(ext) === -1)
+          return { ok: false, err: 'Extension "' + ext + '" không hợp lệ' };
+        if (!base) return { ok: false, err: "Tên rỗng" };
+        if (/[\/\\:*?"<>|]/.test(base))
+          return { ok: false, err: "Tên chứa ký tự không hợp lệ" };
+        return { ok: true, qr: base };
+      }
+
+      // ── Add files ─────────────────────────────────────────────────
+      function addFiles(files) {
+        files.forEach(function (f) {
+          if (
+            queue.find(function (x) {
+              return x.file.name === f.name;
+            })
+          )
+            return;
+          var v = validate(f.name);
+          queue.push({
+            file: f,
+            status: v.ok ? "wait" : "err",
+            msg: v.ok ? "Chờ upload" : v.err,
+          });
+        });
+        render();
+        document.getElementById("queueWrap").style.display = queue.length
+          ? "block"
+          : "none";
+      }
+
+      function clearAll() {
+        if (running) return;
+        queue = [];
+        render();
+        document.getElementById("queueWrap").style.display = "none";
+        document.getElementById("summary").className = "summary";
+        document.getElementById("prog").classList.remove("show");
+        updateStats();
+      }
+
+      // ── Render ────────────────────────────────────────────────────
+      function render() {
+        var list = document.getElementById("fileList");
+        list.innerHTML = queue
+          .map(function (item, i) {
+            var v = validate(item.file.name);
+            var qrLabel = v.ok
+              ? "<span style=\"color:#444;font-family:'DM Mono';font-size:10px\"> → " +
+                v.qr +
+                "</span>"
+              : "";
+            var labels = { wait: "CHỜ", ok: "OK", err: "LỖI", run: "..." };
+            return (
+              '<div class="fitem">' +
+              '<div class="fthumb" id="ft' +
+              i +
+              '">🖼</div>' +
+              '<div class="finfo">' +
+              '<div class="fname">' +
+              escHtml(item.file.name) +
+              "</div>" +
+              '<div class="fmeta s-' +
+              item.status +
+              '">' +
+              escHtml(item.msg) +
+              qrLabel +
+              "</div>" +
+              "</div>" +
+              '<div class="fbadge b-' +
+              item.status +
+              '">' +
+              labels[item.status] +
+              "</div>" +
+              "</div>"
+            );
+          })
+          .join("");
+
+        // Thumbnails
+        queue.forEach(function (item, i) {
+          var r = new FileReader();
+          r.onload = function (e) {
+            var t = document.getElementById("ft" + i);
+            if (t) t.innerHTML = '<img src="' + e.target.result + '">';
+          };
+          r.readAsDataURL(item.file);
+        });
+
+        document.getElementById("qCount").textContent = queue.length + " file";
+        document.getElementById("upBtn").disabled =
+          running ||
+          !queue.some(function (x) {
+            return x.status === "wait";
+          });
+        updateStats();
+      }
+
+      function updateStats() {
+        document.getElementById("sT").textContent = queue.length;
+        document.getElementById("sO").textContent = queue.filter(function (x) {
+          return x.status === "ok";
+        }).length;
+        document.getElementById("sE").textContent = queue.filter(function (x) {
+          return x.status === "err";
+        }).length;
+        document.getElementById("sW").textContent = queue.filter(function (x) {
+          return x.status === "wait" || x.status === "run";
+        }).length;
+      }
+
+      // ── Log ───────────────────────────────────────────────────────
+      function addLog(msg, type) {
+        var log = document.getElementById("log");
+        // Xóa placeholder
+        if (
+          log.firstChild &&
+          log.firstChild.style &&
+          log.firstChild.style.color === "rgb(42, 42, 42)"
+        ) {
+          log.innerHTML = "";
+        }
+        var d = document.createElement("div");
+        d.className = "log-item" + (type ? " log-" + type : "");
+        d.textContent = new Date().toLocaleTimeString("vi") + "  " + msg;
+        log.insertBefore(d, log.firstChild);
+        if (log.children.length > 80) log.removeChild(log.lastChild);
+      }
+
+      // ── Upload — dùng google.script.run ──────────────────────────
+      function startUpload() {
+        var pending = queue.filter(function (x) {
+          return x.status === "wait";
+        });
+        if (!pending.length || running) return;
+
+        running = true;
+        document.getElementById("upBtn").disabled = true;
+        document.getElementById("prog").classList.add("show");
+        document.getElementById("summary").className = "summary";
+
+        var total = pending.length,
+          done = 0,
+          okC = 0,
+          errList = [];
+
+        function processNext(i) {
+          if (i >= pending.length) {
+            // Hoàn tất
+            running = false;
+            document.getElementById("progFill").style.width = "100%";
+            document.getElementById("progText").textContent =
+              "Hoàn tất " + total + " file";
+            showSummary(okC, errList);
+            render(); // re-enable button nếu còn file wait
+            return;
+          }
+
+          var item = pending[i];
+          item.status = "run";
+          item.msg = "Đang chèn...";
+          render();
+          updateProgress(done, total, item.file.name);
+          addLog("Đang upload: " + item.file.name, "run");
+
+          // Đọc file → base64
+          var reader = new FileReader();
+          reader.onload = function (ev) {
+            var dataURL = ev.target.result;
+            var comma = dataURL.indexOf(",");
+            var b64 = dataURL.substring(comma + 1);
+            var mimeType = dataURL.substring(5, dataURL.indexOf(";"));
+
+            var params = {
+              fileName: item.file.name,
+              base64: b64,
+              mimeType: mimeType,
+            };
+
+            // ── Gọi GAS function trực tiếp — không CORS ──
+            google.script.run
+              .withSuccessHandler(function (result) {
+                done++;
+                if (result && result.success) {
+                  okC++;
+                  item.status = "ok";
+                  item.msg = result.message || "✅ Thành công";
+                  addLog(
+                    "OK → " + item.file.name + " (hàng " + result.row + ")",
+                    "ok",
+                  );
+                } else {
+                  var errMsg = (result && result.error) || "Lỗi không xác định";
+                  errList.push(item.file.name + ": " + errMsg);
+                  item.status = "err";
+                  item.msg = errMsg;
+                  addLog("LỖI → " + item.file.name + ": " + errMsg, "err");
+                }
+                render();
+                processNext(i + 1);
+              })
+              .withFailureHandler(function (err) {
+                done++;
+                var errMsg = (err && err.message) || "Lỗi server";
+                errList.push(item.file.name + ": " + errMsg);
+                item.status = "err";
+                item.msg = errMsg;
+                addLog("LỖI server → " + item.file.name + ": " + errMsg, "err");
+                render();
+                processNext(i + 1);
+              })
+              .insertImage(params); // ← gọi trực tiếp hàm GAS, không CORS
+          };
+          reader.readAsDataURL(item.file);
+        }
+
+        processNext(0);
+      }
+
+      function updateProgress(done, total, name) {
+        var pct = Math.round((done / total) * 100);
+        document.getElementById("progFill").style.width = pct + "%";
+        document.getElementById("progText").textContent =
+          "Đang xử lý " + (done + 1) + "/" + total + ": " + name;
+      }
+
+      function showSummary(ok, errors) {
+        var s = document.getElementById("summary");
+        if (!errors.length) {
+          s.className = "summary show ok";
+          s.innerHTML =
+            "✅ Đã chèn thành công <strong>" + ok + "</strong> ảnh vào sheet.";
+        } else if (!ok) {
+          s.className = "summary show err";
+          s.innerHTML =
+            "❌ Tất cả " +
+            errors.length +
+            " file thất bại:<br>" +
+            errors
+              .slice(0, 5)
+              .map(function (e) {
+                return "• " + e;
+              })
+              .join("<br>") +
+            (errors.length > 5
+              ? "<br>…và " + (errors.length - 5) + " lỗi khác"
+              : "");
+        } else {
+          s.className = "summary show mix";
+          s.innerHTML =
+            "⚠️ " +
+            ok +
+            " thành công, " +
+            errors.length +
+            " lỗi:<br>" +
+            errors
+              .slice(0, 3)
+              .map(function (e) {
+                return "• " + e;
+              })
+              .join("<br>") +
+            (errors.length > 3
+              ? "<br>…và " + (errors.length - 3) + " lỗi khác"
+              : "");
+        }
+      }
+
+      function escHtml(s) {
+        return s
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+    </script>
+  </body>
+</html>
