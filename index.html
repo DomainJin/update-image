@@ -67,10 +67,50 @@
         color: var(--muted);
       }
 
+      /* ── Config bar ── */
+      .config-bar {
+        width: 100%;
+        max-width: 860px;
+        padding: 12px 20px;
+        background: #0f0f0f;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 0;
+      }
+      .config-bar label {
+        font-size: 11px;
+        color: var(--muted);
+        white-space: nowrap;
+        letter-spacing: 0.05em;
+      }
+      .config-bar input {
+        flex: 1;
+        background: #181818;
+        border: 1px solid #2a2a2a;
+        color: #ccc;
+        border-radius: 6px;
+        padding: 7px 12px;
+        font-size: 12px;
+        font-family: "DM Mono";
+        outline: none;
+      }
+      .config-bar input:focus {
+        border-color: var(--red);
+      }
+      .config-bar input.ok {
+        border-color: #22c55e44;
+      }
+      .config-status {
+        font-size: 11px;
+        white-space: nowrap;
+      }
+
       .wrap {
         width: 100%;
         max-width: 860px;
-        padding: 32px 20px 80px;
+        padding: 24px 20px 80px;
         display: grid;
         grid-template-columns: 1fr 300px;
         gap: 20px;
@@ -102,7 +142,6 @@
         padding: 20px;
       }
 
-      /* Drop zone */
       #dropZone {
         border: 2px dashed #2a2a2a;
         border-radius: 12px;
@@ -144,7 +183,6 @@
         display: none;
       }
 
-      /* Queue */
       #queueWrap {
         margin-top: 16px;
       }
@@ -272,7 +310,6 @@
         color: #fc0;
       }
 
-      /* Button */
       .upload-row {
         margin-top: 16px;
       }
@@ -301,7 +338,6 @@
         box-shadow: none;
       }
 
-      /* Progress */
       #prog {
         margin-top: 12px;
         display: none;
@@ -328,7 +364,6 @@
         margin-top: 5px;
       }
 
-      /* Summary */
       #summary {
         display: none;
         margin-top: 12px;
@@ -356,7 +391,6 @@
         color: #fca;
       }
 
-      /* Stats */
       .stat-box {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -394,7 +428,6 @@
         color: var(--yellow);
       }
 
-      /* Log */
       #log {
         padding: 0 14px 14px;
         max-height: 280px;
@@ -453,6 +486,25 @@
           transform: rotate(360deg);
         }
       }
+
+      /* ── CORS info banner ── */
+      .cors-info {
+        width: 100%;
+        max-width: 860px;
+        padding: 10px 20px;
+        background: #1a1500;
+        border-bottom: 1px solid #3a2f00;
+        font-size: 11px;
+        color: #a08030;
+        display: none;
+        line-height: 1.5;
+      }
+      .cors-info.show {
+        display: block;
+      }
+      .cors-info strong {
+        color: #f5c400;
+      }
     </style>
   </head>
   <body>
@@ -460,9 +512,30 @@
       <div class="vx">VX</div>
       <div>
         <h1>UPLOAD ẢNH CHECKIN</h1>
-        <p>Tên file = QR CODE TEXT · Chạy trực tiếp trên Google Apps Script</p>
+        <p>Tên file = QR CODE TEXT · Dùng được từ bất kỳ trình duyệt nào</p>
       </div>
     </header>
+
+    <!-- GAS URL config -->
+    <div class="config-bar">
+      <label>GAS URL:</label>
+      <input
+        type="text"
+        id="gasUrl"
+        placeholder="Paste URL Web App GAS vào đây rồi nhấn Enter..."
+        onchange="saveUrl()"
+        onkeydown="if (event.key === 'Enter') saveUrl();"
+      />
+      <span class="config-status" id="urlStatus">⚪ Chưa cấu hình</span>
+    </div>
+
+    <div class="cors-info" id="corsInfo">
+      ⚠️ <strong>Lưu ý CORS:</strong> Khi chạy từ file local, trình duyệt chặn
+      việc đọc response. Ảnh vẫn được gửi và lưu vào sheet, nhưng không thể xác
+      nhận kết quả từng file. Để có kết quả chính xác, hãy host file này trên
+      HTTPS (Vercel / GitHub Pages) hoặc dùng trang GAS hosted
+      (<code>?action=upload</code>).
+    </div>
 
     <div class="wrap">
       <!-- LEFT -->
@@ -551,6 +624,37 @@
     </div>
 
     <script>
+      // ── GAS URL management ─────────────────────────────────────────
+      var GAS_URL = localStorage.getItem("gasUrl") || "";
+
+      function saveUrl() {
+        var v = document.getElementById("gasUrl").value.trim();
+        if (!v) return;
+        GAS_URL = v;
+        localStorage.setItem("gasUrl", v);
+        document.getElementById("urlStatus").textContent = "✅ Đã lưu";
+        document.getElementById("urlStatus").style.color = "#22c55e";
+        // Re-enable upload button if files waiting
+        render();
+      }
+
+      // Restore saved URL
+      if (GAS_URL) {
+        document.getElementById("gasUrl").value = GAS_URL;
+        document.getElementById("gasUrl").classList.add("ok");
+        document.getElementById("urlStatus").textContent = "✅ Đã lưu";
+        document.getElementById("urlStatus").style.color = "#22c55e";
+      }
+
+      // ── Detect if running from local file ──────────────────────────
+      var isLocal =
+        location.protocol === "file:" ||
+        location.hostname === "127.0.0.1" ||
+        location.hostname === "localhost";
+      if (isLocal) {
+        document.getElementById("corsInfo").classList.add("show");
+      }
+
       // ── State ─────────────────────────────────────────────────────
       var queue = [];
       var VALID_EXT = ["jpg", "jpeg", "png", "gif", "webp"];
@@ -664,7 +768,6 @@
           })
           .join("");
 
-        // Thumbnails
         queue.forEach(function (item, i) {
           var r = new FileReader();
           r.onload = function (e) {
@@ -675,11 +778,19 @@
         });
 
         document.getElementById("qCount").textContent = queue.length + " file";
+
+        var hasUrl = !!GAS_URL;
+        var hasWait = queue.some(function (x) {
+          return x.status === "wait";
+        });
         document.getElementById("upBtn").disabled =
-          running ||
-          !queue.some(function (x) {
-            return x.status === "wait";
-          });
+          running || !hasWait || !hasUrl;
+        if (!hasUrl)
+          document.getElementById("upBtn").textContent = "⚠ Nhập GAS URL trước";
+        else
+          document.getElementById("upBtn").textContent =
+            "⬆ Chèn vào Google Sheet";
+
         updateStats();
       }
 
@@ -699,7 +810,6 @@
       // ── Log ───────────────────────────────────────────────────────
       function addLog(msg, type) {
         var log = document.getElementById("log");
-        // Xóa placeholder
         if (
           log.firstChild &&
           log.firstChild.style &&
@@ -714,8 +824,13 @@
         if (log.children.length > 80) log.removeChild(log.lastChild);
       }
 
-      // ── Upload — dùng google.script.run ──────────────────────────
+      // ── Upload ────────────────────────────────────────────────────
       function startUpload() {
+        if (!GAS_URL) {
+          alert("Vui lòng nhập GAS URL trước!");
+          return;
+        }
+
         var pending = queue.filter(function (x) {
           return x.status === "wait";
         });
@@ -733,42 +848,43 @@
 
         function processNext(i) {
           if (i >= pending.length) {
-            // Hoàn tất
             running = false;
             document.getElementById("progFill").style.width = "100%";
             document.getElementById("progText").textContent =
               "Hoàn tất " + total + " file";
             showSummary(okC, errList);
-            render(); // re-enable button nếu còn file wait
+            render();
             return;
           }
 
           var item = pending[i];
           item.status = "run";
-          item.msg = "Đang chèn...";
+          item.msg = "Đang gửi...";
           render();
           updateProgress(done, total, item.file.name);
           addLog("Đang upload: " + item.file.name, "run");
 
-          // Đọc file → base64
-          var reader = new FileReader();
-          reader.onload = function (ev) {
-            var dataURL = ev.target.result;
+          resizeAndCompress(item.file, function (dataURL, mimeType) {
             var comma = dataURL.indexOf(",");
             var b64 = dataURL.substring(comma + 1);
-            var mimeType = dataURL.substring(5, dataURL.indexOf(";"));
 
-            var params = {
+            var payload = JSON.stringify({
+              action: "insertImage",
               fileName: item.file.name,
               base64: b64,
               mimeType: mimeType,
-            };
+            });
 
-            // ── Gọi GAS function trực tiếp — không CORS ──
-            google.script.run
-              .withSuccessHandler(function (result) {
+            sendToGAS(payload)
+              .then(function (result) {
                 done++;
-                if (result && result.success) {
+                if (result === "no-cors") {
+                  // no-cors mode: không biết kết quả, coi như thành công
+                  okC++;
+                  item.status = "ok";
+                  item.msg = "✅ Đã gửi (không xác nhận được do CORS)";
+                  addLog("Đã gửi: " + item.file.name + " (CORS mode)", "ok");
+                } else if (result && result.success) {
                   okC++;
                   item.status = "ok";
                   item.msg = result.message || "✅ Thành công";
@@ -786,22 +902,103 @@
                 render();
                 processNext(i + 1);
               })
-              .withFailureHandler(function (err) {
+              .catch(function (err) {
                 done++;
-                var errMsg = (err && err.message) || "Lỗi server";
-                errList.push(item.file.name + ": " + errMsg);
+                errList.push(item.file.name + ": " + err.message);
                 item.status = "err";
-                item.msg = errMsg;
-                addLog("LỖI server → " + item.file.name + ": " + errMsg, "err");
+                item.msg = err.message;
+                addLog("LỖI → " + item.file.name + ": " + err.message, "err");
                 render();
                 processNext(i + 1);
-              })
-              .insertImage(params); // ← gọi trực tiếp hàm GAS, không CORS
-          };
-          reader.readAsDataURL(item.file);
+              });
+          });
         }
 
         processNext(0);
+      }
+
+      // ── Resize & compress ảnh trước khi upload ───────────────────
+      function resizeAndCompress(file, callback) {
+        var MAX_SIZE = 800,
+          QUALITY = 0.75;
+        var r = new FileReader();
+        r.onload = function (ev) {
+          var img = new Image();
+          img.onload = function () {
+            var w = img.width,
+              h = img.height;
+            if (w > MAX_SIZE || h > MAX_SIZE) {
+              if (w > h) {
+                h = Math.round((h * MAX_SIZE) / w);
+                w = MAX_SIZE;
+              } else {
+                w = Math.round((w * MAX_SIZE) / h);
+                h = MAX_SIZE;
+              }
+            }
+            var canvas = document.createElement("canvas");
+            canvas.width = w;
+            canvas.height = h;
+            canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+            callback(canvas.toDataURL("image/jpeg", QUALITY), "image/jpeg");
+          };
+          img.src = ev.target.result;
+        };
+        r.readAsDataURL(file);
+      }
+
+      // ── Smart fetch: JSON POST → GET URL params fallback (mobile/CORS) ──────
+      function sendToGAS(payload) {
+        return fetch(GAS_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: payload,
+        })
+          .then(function (r) {
+            if (!r.ok) throw new Error("HTTP " + r.status);
+            return r.json();
+          })
+          .catch(function (err) {
+            var isCorsErr =
+              err.message &&
+              (err.message.indexOf("CORS") !== -1 ||
+                err.message.indexOf("fetch") !== -1 ||
+                err.message.indexOf("Failed") !== -1 ||
+                err.message.indexOf("NetworkError") !== -1);
+            if (isCorsErr || isLocal) {
+              addLog("CORS detected, thử GET fallback...", null);
+              try {
+                var data = JSON.parse(payload);
+                var params = new URLSearchParams({
+                  action: data.action || "insertImage",
+                  fileName: data.fileName || "",
+                  base64: data.base64 || "",
+                  mimeType: data.mimeType || "",
+                });
+                return fetch(GAS_URL + "?" + params.toString(), {
+                  method: "GET",
+                })
+                  .then(function (r2) {
+                    return r2.json();
+                  })
+                  .catch(function () {
+                    // Cuối cùng: no-cors POST (không đọc response)
+                    addLog("GET cũng bị block, dùng no-cors POST...", null);
+                    return fetch(GAS_URL, {
+                      method: "POST",
+                      mode: "no-cors",
+                      headers: { "Content-Type": "text/plain" },
+                      body: payload,
+                    }).then(function () {
+                      return "no-cors";
+                    });
+                  });
+              } catch (e2) {
+                return { success: false, error: e2.message };
+              }
+            }
+            throw err;
+          });
       }
 
       function updateProgress(done, total, name) {
@@ -816,7 +1013,12 @@
         if (!errors.length) {
           s.className = "summary show ok";
           s.innerHTML =
-            "✅ Đã chèn thành công <strong>" + ok + "</strong> ảnh vào sheet.";
+            "✅ Đã gửi <strong>" +
+            ok +
+            "</strong> ảnh lên GAS." +
+            (isLocal
+              ? '<br><small style="color:#888">Đang chạy local — kiểm tra sheet để xác nhận.</small>'
+              : "");
         } else if (!ok) {
           s.className = "summary show err";
           s.innerHTML =
@@ -837,7 +1039,7 @@
           s.innerHTML =
             "⚠️ " +
             ok +
-            " thành công, " +
+            " đã gửi, " +
             errors.length +
             " lỗi:<br>" +
             errors
